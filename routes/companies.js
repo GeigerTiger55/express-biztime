@@ -22,17 +22,25 @@ router.get("/", async function (req, res) {
 
 /** GET  /[code]
  * - Accepts code in url parameter
- * - Returns object of a single company:
- *    {company: {code, name, description}}
+ * - Returns object of a single company with invoices for company:
+ *    {company: {code, name, description,
+ *      invoice: [id, ...]}}
 */
 router.get("/:code", async function (req, res) {
   const code = req.params.code;
-  const results = await db.query(
+  const cResults = await db.query(
     `SELECT code, name, description FROM companies WHERE code = $1`,
     [code]);
-  const company = results.rows[0];
+  const company = cResults.rows[0];
 
   if (!company) throw new NotFoundError(`No company matching code: ${code}`);
+
+  const iResults = await db.query(
+    `SELECT id
+      FROM invoices
+      WHERE comp_code = $1`,
+    [code]);
+  company.invoices = iResults.rows.map(i => i.id);
 
   return res.json({ company });
 });
@@ -90,7 +98,7 @@ router.put("/:code", async function (req, res) {
 /** DELETE /[code] - deletes company
  * - Returns json if company code found:
  *  {status: "deleted"}
- * - Returns 404 error if company cpde not found
+ * - Returns 404 error if company code not found
 */
 router.delete("/:code", async function (req, res) {
   const code = req.params.code;

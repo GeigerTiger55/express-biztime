@@ -76,5 +76,49 @@ router.get("/:id", async function (req, res) {
 });
 
 
+/** PUT /[id] - update all fields in invoice;
+ * Accepts JSON {amt}
+ * - Returns updated invoice:
+ *  {invoice: {id, comp_code, amt, paid, add_date, paid_date}}
+ */
+
+ router.put("/:id", async function (req, res) {
+  
+  if (Object.keys(req.body).length > 1 || !("amt" in req.body)){
+   throw new BadRequestError("Not allowed");
+  }
+
+  const id = req.params.id;
+
+  const { amt } = req.body;
+
+  const results = await db.query(
+    `UPDATE invoices
+         SET amt=$1
+         WHERE id = $2
+         RETURNING id, comp_code, amt, paid, add_date, paid_date`,
+    [amt, id]);
+  const invoice = results.rows[0];
+
+  if (!invoice) throw new NotFoundError(`No matching invoice: ${id}`);
+  return res.json({ invoice });
+});
+
+
+/** DELETE /[id] - deletes invoice
+ * - Returns json if invoice id found:
+ *  {status: "deleted"}
+ * - Returns 404 error if invoice id not found
+*/
+router.delete("/:id", async function (req, res) {
+  const id = req.params.id;
+  const results = await db.query(
+    "DELETE FROM invoices WHERE id = $1 RETURNING id", [id]);
+  const invoice = results.rows[0];
+
+  if (!invoice) throw new NotFoundError(`No matching invoice: ${id}`);
+  return res.json({ status: "deleted" });
+});
+
 
 module.exports = router;
