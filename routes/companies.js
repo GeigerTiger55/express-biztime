@@ -6,7 +6,7 @@ const { NotFoundError, BadRequestError } = require("../expressError");
 const router = new express.Router();
 const db = require("../db");
 
-/** GET / 
+/** GET /
  * - Returns a list of companies:
  *    {companies: [{code, name}, ...]}
  */
@@ -19,7 +19,7 @@ router.get("/", async function(req, res) {
 
 
 
-/** GET  /[code] 
+/** GET  /[code]
  * - Accepts code in url parameter
  * - Returns object of a single company:
  *    {company: {code, name, description}}
@@ -37,12 +37,54 @@ router.get("/:code", async function(req, res) {
 });
 
 
-/** POST / 
+/** POST /
  * - Accepts JSON:
  *    {code, name, description}
  * - Returns object of new company:
  *    {company: {code, name, description}}
  */
+//TODO: should we check if these input values are valid
+ router.post("/", async function (req, res) {
+
+  const newCompanyData = [
+    req.body.code,
+    req.body.name,
+    req.body.description,
+  ];
+
+  const results = await db.query(
+    `INSERT INTO companies (code, name, description)
+         VALUES ($1, $2, $3)
+         RETURNING code, name, description`,
+         newCompanyData);
+  const company = results.rows[0];
+
+  return res.status(201).json({ "company": company });
+});
+
+/** PUT /[id] - update all fields in company;
+ * returns updated company`{company: {code, name, description}}` */
+
+router.put("/:code", async function (req, res) {
+  if ("code" in req.body) throw new BadRequestError("Not allowed");
+
+  const code = req.params.code;
+
+  const updatedName = req.body.name;
+  const updatedDescription = req.body.description;
+
+  const results = await db.query(
+    `UPDATE companies
+         SET name=$1, description=$2
+         WHERE code = $3
+         RETURNING code, name, description`,
+    [updatedName, updatedDescription, code]);
+  const company = results.rows[0];
+
+  if (!company) throw new NotFoundError(`No matching company: ${code}`);
+  return res.json({ "company": company });
+});
+
 
 
 module.exports = router;
