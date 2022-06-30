@@ -12,6 +12,7 @@ const db = require("../db");
  * - Returns a list of invoices:
  *    {invoices: [{id, comp_code}, ...]}
  */
+//TODO: Add ORDER BYs when appropriate
 router.get("/", async function (req, res) {
   const results = await db.query("SELECT id, comp_code FROM invoices");
   const invoices = results.rows;
