@@ -8,7 +8,6 @@ const { NotFoundError, BadRequestError } = require("../expressError");
 const router = new express.Router();
 const db = require("../db");
 
-//TODO: update json returns to use javascript object shorthand
 /** GET /
  * - Returns a list of companies:
  *    {companies: [{code, name}, ...]}
@@ -35,63 +34,56 @@ router.get("/:code", async function (req, res) {
 
   if (!company) throw new NotFoundError(`No company matching code: ${code}`);
 
-  return res.json({ "company": company });
+  return res.json({ company });
 });
 
 
 /** POST /
  * - Accepts JSON:
- *    {code, name, description}
+ *    {str:code, str:name, str:description}
+ *
  * - Returns object of new company:
  *    {company: {code, name, description}}
  */
-//TODO: add types for values accepted to docstring
-//  Could destruture on lines 53-56
-// should we check if these input values are valid
+
 router.post("/", async function (req, res) {
 
-  const newCompanyData = [
-    req.body.code,
-    req.body.name,
-    req.body.description,
-  ];
+  const {code, name, description} = req.body;
 
   const results = await db.query(
     `INSERT INTO companies (code, name, description)
          VALUES ($1, $2, $3)
          RETURNING code, name, description`,
-    newCompanyData);
+    [code, name, description]);
   const company = results.rows[0];
 
-  return res.status(201).json({ "company": company });
+  return res.status(201).json({ company });
 });
 
 
 /** PUT /[code] - update all fields in company;
+ * Accepts JSON {name, description}
  * - Returns updated company:
- * `{company: {code, name, description}}` 
- * TODO: update docstring to be mroe specific about what the user sends
- * */
+ * `{company: {code, name, description}}`
+ */
 
 router.put("/:code", async function (req, res) {
   if ("code" in req.body) throw new BadRequestError("Not allowed");
 
   const code = req.params.code;
 
-  //TODO: use destructure
-  const updatedName = req.body.name;
-  const updatedDescription = req.body.description;
+  const {name, description} = req.body;
 
   const results = await db.query(
     `UPDATE companies
          SET name=$1, description=$2
          WHERE code = $3
          RETURNING code, name, description`,
-    [updatedName, updatedDescription, code]);
+    [name, description, code]);
   const company = results.rows[0];
 
   if (!company) throw new NotFoundError(`No matching company: ${code}`);
-  return res.json({ company: company });
+  return res.json({ company });
 });
 
 
