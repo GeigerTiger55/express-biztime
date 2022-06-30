@@ -6,11 +6,12 @@ const { NotFoundError, BadRequestError } = require("../expressError");
 const router = new express.Router();
 const db = require("../db");
 
+
 /** GET /
  * - Returns a list of companies:
  *    {companies: [{code, name}, ...]}
  */
-router.get("/", async function(req, res) {
+router.get("/", async function (req, res) {
   const results = await db.query("SELECT code, name FROM companies");
   const companies = results.rows;
 
@@ -18,20 +19,19 @@ router.get("/", async function(req, res) {
 });
 
 
-
 /** GET  /[code]
  * - Accepts code in url parameter
  * - Returns object of a single company:
  *    {company: {code, name, description}}
 */
-router.get("/:code", async function(req, res) {
+router.get("/:code", async function (req, res) {
   const code = req.params.code;
   const results = await db.query(
-    `SELECT code, name FROM companies WHERE code = $1`,
+    `SELECT code, name, description FROM companies WHERE code = $1`,
     [code]);
   const company = results.rows[0];
 
-  if(!company) throw new NotFoundError(`No company matching code: ${code}`);
+  if (!company) throw new NotFoundError(`No company matching code: ${code}`);
 
   return res.json({ "company": company });
 });
@@ -44,7 +44,7 @@ router.get("/:code", async function(req, res) {
  *    {company: {code, name, description}}
  */
 //TODO: should we check if these input values are valid
- router.post("/", async function (req, res) {
+router.post("/", async function (req, res) {
 
   const newCompanyData = [
     req.body.code,
@@ -56,14 +56,16 @@ router.get("/:code", async function(req, res) {
     `INSERT INTO companies (code, name, description)
          VALUES ($1, $2, $3)
          RETURNING code, name, description`,
-         newCompanyData);
+    newCompanyData);
   const company = results.rows[0];
 
   return res.status(201).json({ "company": company });
 });
 
-/** PUT /[id] - update all fields in company;
- * returns updated company`{company: {code, name, description}}` */
+
+/** PUT /[code] - update all fields in company;
+ * - Returns updated company:
+ * `{company: {code, name, description}}` */
 
 router.put("/:code", async function (req, res) {
   if ("code" in req.body) throw new BadRequestError("Not allowed");
@@ -82,9 +84,23 @@ router.put("/:code", async function (req, res) {
   const company = results.rows[0];
 
   if (!company) throw new NotFoundError(`No matching company: ${code}`);
-  return res.json({ "company": company });
+  return res.json({ company: company });
 });
 
 
+/** DELETE /[code] - deletes company
+ * - Returns json if company code found:
+ *  {status: "deleted"}
+ * - Returns 404 error if company cpde not found
+*/
+router.delete("/:code", async function (req, res) {
+  const code = req.params.code;
+  const results = await db.query(
+    "DELETE FROM companies WHERE code = $1 RETURNING code", [code]);
+  const company = results.rows[0];
+
+  if (!company) throw new NotFoundError(`No matching company: ${code}`);
+  return res.json({ status: "deleted" });
+});
 
 module.exports = router;
