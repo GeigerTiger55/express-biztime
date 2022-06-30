@@ -1,3 +1,5 @@
+"use strict";
+
 /** Routes for companies */
 
 const express = require("express");
@@ -6,7 +8,7 @@ const { NotFoundError, BadRequestError } = require("../expressError");
 const router = new express.Router();
 const db = require("../db");
 
-
+//TODO: update json returns to use javascript object shorthand
 /** GET /
  * - Returns a list of companies:
  *    {companies: [{code, name}, ...]}
@@ -15,7 +17,7 @@ router.get("/", async function (req, res) {
   const results = await db.query("SELECT code, name FROM companies");
   const companies = results.rows;
 
-  return res.json({ "companies": companies });
+  return res.json({ companies });
 });
 
 
@@ -43,7 +45,9 @@ router.get("/:code", async function (req, res) {
  * - Returns object of new company:
  *    {company: {code, name, description}}
  */
-//TODO: should we check if these input values are valid
+//TODO: add types for values accepted to docstring
+//  Could destruture on lines 53-56
+// should we check if these input values are valid
 router.post("/", async function (req, res) {
 
   const newCompanyData = [
@@ -65,13 +69,16 @@ router.post("/", async function (req, res) {
 
 /** PUT /[code] - update all fields in company;
  * - Returns updated company:
- * `{company: {code, name, description}}` */
+ * `{company: {code, name, description}}` 
+ * TODO: update docstring to be mroe specific about what the user sends
+ * */
 
 router.put("/:code", async function (req, res) {
   if ("code" in req.body) throw new BadRequestError("Not allowed");
 
   const code = req.params.code;
 
+  //TODO: use destructure
   const updatedName = req.body.name;
   const updatedDescription = req.body.description;
 
@@ -102,5 +109,6 @@ router.delete("/:code", async function (req, res) {
   if (!company) throw new NotFoundError(`No matching company: ${code}`);
   return res.json({ status: "deleted" });
 });
+
 
 module.exports = router;
